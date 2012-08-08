@@ -17,9 +17,10 @@ $(document).ready(function() {
 
 		//graphics
 		var planeImageSrc = 'http://smiliesworld.fr/smileys/superman.gif';
-		var screenPlaneLength = 30;
+		var screenPlaneLength = 30;//px
 
 		var M = 80, L = 2, gPos = 0.4;
+		var zoom = screenPlaneLength / L;
 
 		//physic engine
 		var testStep = 1/100;
@@ -139,16 +140,13 @@ $(document).ready(function() {
 			return Math.abs((((1.2345 * x % 0.33) + (6.322 * x % 0.33) + (3.87 * x % 0.33)) % 1)) - 0.5;
 		};
 
-		var height = function(x) {
-			if (Math.floor(x)!==x) throw 'x should be int';
+		var height = function(x, delta) {
 			var prevStep = Math.floor(x/stepLength)*stepLength;
 			var left = prevStep, right = prevStep + stepLength;
 			var leftHeight = -left * slope, rightHeight = -right * slope;
 
-			while (true) {
-				if (left === x) return leftHeight;
-				if (right === x) return rightHeight;
-				var middle = Math.floor((left + right) / 2);
+			while (right - left > delta) {
+				var middle = (left + right) / 2;
 				var middleHeight = (leftHeight + rightHeight) / 2;
 				middleHeight += (right - left) * pseudoRandom(middle) * randomStrength;
 				if (x < middle) {
@@ -158,7 +156,8 @@ $(document).ready(function() {
 					left = middle;
 					leftHeight = middleHeight;
 				}
-			} 
+			}
+			return (leftHeight + rightHeight) / 2;
 		};
 
 
@@ -189,9 +188,9 @@ $(document).ready(function() {
 			ctx.beginPath();
 			var offsetX = Math.floor(x - canvasW/2);
 			var offsetY = Math.floor(y + canvasH/2);
-			ctx.moveTo(0, offsetY - height(offsetX));
+			ctx.moveTo(0, offsetY - height(offsetX, 1));
 			for(var j = 1; j < canvasW; j++) {
-				ctx.lineTo(j, offsetY - height(offsetX + j));
+				ctx.lineTo(j, offsetY - height(offsetX + j, 1));
 			}
 			ctx.lineTo(canvasW - 1, canvasH - 1);
 			ctx.lineTo(0, canvasH - 1);
