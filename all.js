@@ -127,8 +127,9 @@ $(document).ready(function() {
 
 
 		var canvas = $('<canvas/>').appendTo(document.body);
-		canvas.width = Math.floor($(document.body).width()):
-		canvas.height = Math.floor($(document.body).height()*0.8);
+		canvas = canvas[0];
+		canvas.width = Math.floor($(window).width()* 0.9);
+		canvas.height = Math.floor($(window).height()*0.8);
 		var canvasW = canvas.width;
 		var canvasH = canvas.height;
 		var ctx = canvas.getContext('2d');
