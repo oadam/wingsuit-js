@@ -125,12 +125,14 @@ $(document).ready(function() {
 
 				}, 1000*testStep);
 
-		var $info = $('#info');
 
-		var canvas = document.getElementById('hello');
+		var canvas = $('<canvas/>').appendTo(document.body);
+		canvas.width = Math.floor($(document.body).width()):
+		canvas.height = Math.floor($(document.body).height()*0.8);
 		var canvasW = canvas.width;
 		var canvasH = canvas.height;
 		var ctx = canvas.getContext('2d');
+		var $info = $('<p/>').appendTo(document.body);
 
 		var x = 0, y = 0;
 		var vL = vinit, vV = 0;
