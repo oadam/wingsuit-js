@@ -16,10 +16,10 @@ $(document).ready(function() {
 		//plane
 		var stallAngle = 16/180*Math.PI;
 		var cLiftMax = 1;
-		var cWingDragAt25Degrees = 0.7;
+		var cWingDrag = 1.1;
 		var cBodyDrag = 2;
 		var bodyS = 0.7;
-		var bodyDragS = 0.01;
+		var bodyDragS = 0.02;
 
 		var M = 80, L = 2, gPos = 0.4;
 
@@ -35,11 +35,7 @@ $(document).ready(function() {
 
 		//see http://upload.wikimedia.org/wikipedia/commons/2/22/Lift_drag_graph.JPG
 		var cDrag = function(alpha) {
-			alpha = (Math.abs(alpha+Math.PI/2) %  (Math.PI)) - Math.PI/2;
-			alpha = Math.abs(alpha);
-			var sqRet = Math.sin(alpha)/Math.sin(25*Math.PI/180);
-			//var sqRet = alpha/25*180/Math.PI;
-			return sqRet * sqRet * cWingDragAt25Degrees;
+			return Math.sin(alpha) * Math.sin(alpha) * cWingDrag;
 		};
 
 		var cLift = function(alpha) {
@@ -182,7 +178,7 @@ $(document).ready(function() {
 		render = function() {
 			var newRenderTime = $.now();
 			var info = [];
-			info.push('vitesse : ' + (vL*3.6).toFixed(1) + ' km/h');
+			info.push('vitesse : ' + (Math.sqrt(vL*vL+vV*vV)*3.6).toFixed(1) + ' km/h');
 			info.push('fps : ' + (1000/ (newRenderTime-lastRenderTime)).toFixed(0));
 			$info.html(info.join('<br/>'));
 			lastRenderTime = newRenderTime;
