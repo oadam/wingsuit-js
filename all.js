@@ -7,13 +7,14 @@ $(document).ready(function() {
 		//controls
 		var vinit = 100;
 		var angularSpeedSign = 0;
-		var angularSpeed = 1.5e-4;
-		var antiStall = 4.5e-4;//rad.s-1.(m/s)-2
+		var angularSpeed = 5e-3;
+		var maxAngularSpeed = 1;
 
 		//physics
 		var g = 9.8, rho = 1.2;
 
 		//plane
+		var antiStall = 4.5e-4;//rad.s-1.(m/s)-2
 		var stallAngle = 16/180*Math.PI;
 		var cLiftMax = 1;
 		var cWingDrag = 1.1;
@@ -76,7 +77,7 @@ $(document).ready(function() {
 			var v = Math.sqrt(vL*vL + vV*vV);
 
 			//update a and avoid stall
-			var da = angularSpeedSign * angularSpeed * v * v * step;
+			var da = angularSpeedSign * Math.min(maxAngularSpeed, angularSpeed * v * v) * step;
 			var futureA = (attackAngle + da)  % (2*Math.PI);
 			var sinAttackAngle = Math.sin(attackAngle);			
 			var antiStallUpdate = - antiStall * v * v * Math.abs(sinAttackAngle) * sinAttackAngle * step;
