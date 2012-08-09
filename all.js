@@ -1,33 +1,37 @@
 $(document).ready(function() {
+		//mountain shape		
 		var stepLength = 600;if (stepLength === 0) throw 'stepLength 0';
 		var randomStrength = 0.9;
 		var slope = 1/3;
-		var vinit = 300;
-		var angularSpeed = 1;
+
+		//controls
+		var vinit = 100;
 		var angularSpeedSign = 0;
+		var angularSpeed = 1.5e-4;
+		var antiStall = 4.5e-4;//rad.s-1.(m/s)-2
 
 		//physics
 		var g = 9.8, rho = 1.2;
 
 		//plane
-		var stallAngle = 23/180*Math.PI;
-		var cLiftMax = 1.2;
-		var cWingDragAt25Degrees = 0.5;
+		var stallAngle = 16/180*Math.PI;
+		var cLiftMax = 1;
+		var cWingDragAt25Degrees = 0.7;
 		var cBodyDrag = 2;
 		var bodyS = 0.7;
 		var bodyDragS = 0.01;
+
+		var M = 80, L = 2, gPos = 0.4;
 
 		//graphics
 		var planeImageSrc = 'http://smiliesworld.fr/smileys/superman.gif';
 		var screenPlaneLength = 30;//px
 
-		var M = 80, L = 2, gPos = 0.4;
 		var zoom = screenPlaneLength / L;
 
 		//physic engine
 		var testStep = 1/100;
 		var minStep = 1/25;//when offscreen setInterval is called every 200ms or more
-		var fastForward = 1;
 
 		//see http://upload.wikimedia.org/wikipedia/commons/2/22/Lift_drag_graph.JPG
 		var cDrag = function(alpha) {
@@ -76,14 +80,11 @@ $(document).ready(function() {
 			var v = Math.sqrt(vL*vL + vV*vV);
 
 			//update a and avoid stall
-			var da = angularSpeedSign * angularSpeed * step;
+			var da = angularSpeedSign * angularSpeed * v * v * step;
 			var futureA = (attackAngle + da)  % (2*Math.PI);
-			if (futureA > stallAngle) {
-				da = stallAngle - attackAngle;
-			}
-			if (futureA < -stallAngle) {
-				da =  -stallAngle - attackAngle;
-			}
+			var sinAttackAngle = Math.sin(attackAngle);			
+			var antiStallUpdate = - antiStall * v * v * Math.abs(sinAttackAngle) * sinAttackAngle * step;
+			da += antiStallUpdate;
 			updateA(da);
 			
 			//bodyDrag
