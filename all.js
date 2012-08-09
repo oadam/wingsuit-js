@@ -13,7 +13,9 @@ $(document).ready(function() {
 		var stallAngle = 23/180*Math.PI;
 		var cLiftMax = 1.2;
 		var cWingDragAt25Degrees = 0.5;
-		var bodyS = 1;
+		var cBodyDrag = 2;
+		var bodyS = 0.7;
+		var bodyDragS = 0.01;
 
 		//graphics
 		var planeImageSrc = 'http://smiliesworld.fr/smileys/superman.gif';
@@ -83,7 +85,9 @@ $(document).ready(function() {
 				da =  -stallAngle - attackAngle;
 			}
 			updateA(da);
-
+			
+			//bodyDrag
+			fL -= 0.5 * rho * bodyDragS * vL * vL * cBodyDrag;
 
 			//wing
 			var wingDragOverV = 0.5 * rho * bodyS * v * cDrag(attackAngle);
