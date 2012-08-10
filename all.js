@@ -1,6 +1,6 @@
 $(document).ready(function() {
 		//mountain shape		
-		var stepLength = 600;if (stepLength === 0) throw 'stepLength 0';
+		var stepLength = 200;
 		var randomStrength = 0.9;
 		var slope = 1/3;
 
