@@ -26,8 +26,10 @@ $(document).ready(function() {
 
 		//graphics
 		var planeImageSrc = 'http://smiliesworld.fr/smileys/superman.gif';
-		var screenPlaneLength = 30;//px
-
+		var screenPlaneLength = 10;//px
+		var planePosX = 30;//px
+		var planePosY = 30;//px
+		
 		var zoom = screenPlaneLength / L;
 
 		//physic engine
@@ -191,8 +193,8 @@ $(document).ready(function() {
 			//moutain
 			ctx.fillStyle = 'brown';
 			ctx.beginPath();
-			var offsetXPx = Math.floor(x * zoom - canvasW/2);
-			var offsetYPx = Math.floor(y * zoom + canvasH/2);
+			var offsetXPx = Math.floor(x * zoom - planePosX);
+			var offsetYPx = Math.floor(y * zoom + planePosY);
 			ctx.moveTo(0, offsetYPx - height(offsetXPx / zoom, 1 / zoom) * zoom);
 			for(var j = 1; j < canvasW; j++) {
 				ctx.lineTo(j, offsetYPx - height((offsetXPx + j) / zoom, 1/ zoom) * zoom);
@@ -204,7 +206,7 @@ $(document).ready(function() {
 
 			//plane
 			ctx.save();
-			ctx.translate(canvasW/2, canvasH/2);
+			ctx.translate(planePosX, planePosY);
 			ctx.rotate(-a);
 			ctx.scale(screenPlaneLength, screenPlaneLength);
 			ctx.scale(-1, 1);
