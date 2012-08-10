@@ -105,6 +105,12 @@ $(document).ready(function() {
 
 			x += vL * cosA * step - vV * sinA * step;
 			y += vL * sinA * step + vV * cosA * step;
+			
+			//die if dead
+			if (y < height(x, 1 / zoom)) {
+				alert('dead');
+				reset();
+			}
 		};
 
 		//physics loop
@@ -139,9 +145,16 @@ $(document).ready(function() {
 		var ctx = canvas.getContext('2d');
 		var $info = $('<p/>').appendTo(document.body);
 
-		var x = 0, y = 0;
-		var vL = vinit, vV = 0;
-		var a = 0;
+		var x, y, vL, vV, a;
+		var reset = function() {
+			x = 0;
+			y = 1;
+			vL = vinit;
+			vV = 0;
+			a = 0;
+		};
+		reset();
+		
 
 		var pseudoRandom = function(x) {
 			return Math.abs((((1.2345 * x % 0.33) + (6.322 * x % 0.33) + (3.87 * x % 0.33)) % 1)) - 0.5;
