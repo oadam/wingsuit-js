@@ -191,11 +191,11 @@ $(document).ready(function() {
 			//moutain
 			ctx.fillStyle = 'brown';
 			ctx.beginPath();
-			var offsetX = Math.floor(x - canvasW/2);
-			var offsetY = Math.floor(y + canvasH/2);
-			ctx.moveTo(0, offsetY - height(offsetX, 1));
+			var offsetXPx = Math.floor(x * zoom - canvasW/2);
+			var offsetYPx = Math.floor(y * zoom + canvasH/2);
+			ctx.moveTo(0, offsetYPx - height(offsetXPx / zoom, 1 / zoom) * zoom);
 			for(var j = 1; j < canvasW; j++) {
-				ctx.lineTo(j, offsetY - height(offsetX + j, 1));
+				ctx.lineTo(j, offsetYPx - height((offsetXPx + j) / zoom, 1/ zoom) * zoom);
 			}
 			ctx.lineTo(canvasW - 1, canvasH - 1);
 			ctx.lineTo(0, canvasH - 1);
