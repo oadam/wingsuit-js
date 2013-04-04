@@ -25,8 +25,8 @@ $(document).ready(function() {
 		var M = 80, L = 2, gPos = 0.4;
 
 		//graphics
-		var planeImageSrc = 'http://smiliesworld.fr/smileys/superman.gif';
-		var screenPlaneLength = 10;//px
+		var planeImageSrc = 'plane.png';
+		var screenPlaneLength = 20;//px
 		var planePosX = 30;//px
 		var planePosY = 30;//px
 		
