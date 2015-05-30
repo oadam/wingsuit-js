@@ -6,6 +6,7 @@ $(document).ready(function() {
 		var slope = 1/3;
 
 		//controls
+		var yinit = 1;
 		var vinit = 100;
 		var angularSpeedSign = 0;
 		var angularSpeed = 5e-3;
@@ -155,7 +156,7 @@ $(document).ready(function() {
 		var lastfL, lastfV;
 		var reset = function() {
 			x = 0;
-			y = 1;
+			y = yinit;
 			vL = vinit;
 			vV = 0;
 			a = 0;
