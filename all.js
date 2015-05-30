@@ -254,6 +254,13 @@ $(document).ready(function() {
 			ctx.lineTo(1, 0);
 			ctx.lineTo(1-arrowW, -arrowW);
 			ctx.stroke();
+			//text
+			ctx.save();
+			ctx.translate(0.45, 0.03);
+			ctx.scale(0.015, -0.015);
+			ctx.fillStyle= 'darkgreen';
+			ctx.fillText((Math.sqrt(vL*vL+vV*vV)*3.6).toFixed(1), 0, 0);
+			ctx.restore();
 			ctx.restore();
 			//force
 			ctx.save();
