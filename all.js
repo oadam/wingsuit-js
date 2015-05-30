@@ -108,7 +108,7 @@ $(document).ready(function() {
 			
 			//die if dead
 			if (y < height(x, 1 / zoom)) {
-				alert('dead');
+				//alert('dead');
 				reset();
 			}
 		};
@@ -136,7 +136,7 @@ $(document).ready(function() {
 				}, 1000*testStep);
 
 
-		var canvas = $('<canvas/>').appendTo(document.body);
+		var canvas = $('canvas');
 		canvas = canvas[0];
 		canvas.width = Math.floor($(window).width()* 0.9);
 		canvas.height = Math.floor($(window).height()*0.8);
@@ -220,10 +220,29 @@ $(document).ready(function() {
 			//plane
 			ctx.save();
 			ctx.translate(planePosX, planePosY);
-			ctx.rotate(-a);
 			ctx.scale(screenPlaneLength, screenPlaneLength);
+			ctx.rotate(-a);
+			//speed
+			ctx.save();
+			ctx.strokeStyle = 'green';
+			ctx.lineWidth = 1e-2;
+			var attackAngle = computeAttackAngle();
+			var speed = Math.sqrt(vL*vL + vV*vV);
+			ctx.scale(speed, speed);
+			ctx.scale(3e-2, -3e-2);
+			ctx.rotate(-attackAngle);
+			ctx.beginPath();
+			ctx.moveTo(0, 0);
+			ctx.lineTo(1, 0);
+			var arrowW = 0.15;
+			ctx.moveTo(1-arrowW, arrowW);
+			ctx.lineTo(1, 0);
+			ctx.lineTo(1-arrowW, -arrowW);
+			ctx.stroke();
+			ctx.restore();
+
+
 			ctx.scale(-1, 1);
-			//ctx.drawImage(planeImage, 0,0);
 			ctx.drawImage(planeImage, -0.5,-11.5/49,1,23/49);
 			ctx.restore();
 			requestAnim();
