@@ -1,4 +1,5 @@
 $(document).ready(function() {
+		'use strict';
 		//mountain shape		
 		var stepLength = 200;
 		var randomStrength = 0.9;
@@ -27,8 +28,8 @@ $(document).ready(function() {
 		//graphics
 		var planeImageSrc = 'plane.png';
 		var screenPlaneLength = 20;//px
-		var planePosX = 30;//px
-		var planePosY = 30;//px
+		var planePosX = 60;//px
+		var planePosY = 60;//px
 		
 		var zoom = screenPlaneLength / L;
 
@@ -60,7 +61,7 @@ $(document).ready(function() {
 			vV = - vL * Math.sin(da) + vV * Math.cos(da);
 		};
 
-		var computeAttackAngle = function() {
+		var computeAttackAngle = function(vL, vV) {
 			return - ((vL === 0) ? Math.PI/2 : Math.atan(vV/vL)) + ((vL > 0) ? 0 : Math.PI);
 		};
 
@@ -72,10 +73,12 @@ $(document).ready(function() {
 			var fL = 0, fV = 0;
 
 			//gravity
-			fL -= M * g * sinA;
-			fV -= M * g * cosA;
+			var gravityL = -M * g * sinA;
+			var gravityV = -M * g * cosA;
+			fL += gravityL;
+			fV += gravityV;
 
-			var attackAngle = computeAttackAngle();
+			var attackAngle = computeAttackAngle(vL, vV);
 			var v = Math.sqrt(vL*vL + vV*vV);
 
 			//update a and avoid stall
@@ -99,6 +102,9 @@ $(document).ready(function() {
 			fL += wfL;
 			fV += wfV;
 
+			lastfL = fL - gravityL;
+			lastfV = fV - gravityV;
+
 			//actual updates
 			vL += fL * step / M;
 			vV += fV * step / M;
@@ -115,7 +121,7 @@ $(document).ready(function() {
 
 		//physics loop
 		var lastUpdated = $.now();
-		interval = setInterval(function() {
+		var interval = setInterval(function() {
 				var now = $.now();
 				var dt = (now-lastUpdated)/1000;
 				lastUpdated = now;
@@ -146,6 +152,7 @@ $(document).ready(function() {
 		var $info = $('<p/>').appendTo(document.body);
 
 		var x, y, vL, vV, a;
+		var lastfL, lastfV;
 		var reset = function() {
 			x = 0;
 			y = 1;
@@ -160,7 +167,7 @@ $(document).ready(function() {
 			return Math.abs((((1.2345 * x % 0.33) + (6.322 * x % 0.33) + (3.87 * x % 0.33)) % 1)) - 0.5;
 		};
 
-		var height = function(x, delta) {
+		function height(x, delta) {
 			var prevStep = Math.floor(x/stepLength)*stepLength;
 			var left = prevStep, right = prevStep + stepLength;
 			var leftHeight = -left * slope, rightHeight = -right * slope;
@@ -222,11 +229,13 @@ $(document).ready(function() {
 			ctx.translate(planePosX, planePosY);
 			ctx.scale(screenPlaneLength, screenPlaneLength);
 			ctx.rotate(-a);
+			//speed and force
+			ctx.save();
+			ctx.lineWidth = 1e-2;
 			//speed
 			ctx.save();
 			ctx.strokeStyle = 'green';
-			ctx.lineWidth = 1e-2;
-			var attackAngle = computeAttackAngle();
+			var attackAngle = computeAttackAngle(vL, vV);
 			var speed = Math.sqrt(vL*vL + vV*vV);
 			ctx.scale(speed, speed);
 			ctx.scale(3e-2, -3e-2);
@@ -239,6 +248,25 @@ $(document).ready(function() {
 			ctx.lineTo(1, 0);
 			ctx.lineTo(1-arrowW, -arrowW);
 			ctx.stroke();
+			ctx.restore();
+			//force
+			ctx.save();
+			ctx.strokeStyle = 'red';
+			var force = Math.sqrt(lastfL*lastfL + lastfV*lastfV);
+			var angle = computeAttackAngle(lastfL, lastfV);
+			ctx.scale(force, force);
+			ctx.scale(1e-3, -1e-3);
+			ctx.rotate(-angle);
+			ctx.beginPath();
+			ctx.moveTo(0, 0);
+			ctx.lineTo(1, 0);
+			var arrowW = 0.15;
+			ctx.moveTo(1-arrowW, arrowW);
+			ctx.lineTo(1, 0);
+			ctx.lineTo(1-arrowW, -arrowW);
+			ctx.stroke();
+			ctx.restore();
+
 			ctx.restore();
 
 
