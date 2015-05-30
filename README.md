@@ -3,4 +3,4 @@ wingsuit-js
 
 A wingsuit game using &lt;canvas/> 2D api
 
-demo: http://oadam.github.com/wingsuit-js/
+demo: https://rawgit.com/oadam/wingsuit-js/master/test.html
