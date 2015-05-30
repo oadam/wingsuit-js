@@ -28,11 +28,14 @@ $(document).ready(function() {
 
 		//graphics
 		var planeImageSrc = 'plane.png';
-		var screenPlaneLength = 20;//px
-		var planePosX = 60;//px
-		var planePosY = 60;//px
+		var screenPlaneLength = 60;//px
+		var artificialPlaneZoom = 5;
+		var planePosX = 80;//px
+		var planePosY = 80;//px
+		var speedArrowZoom = 8e-2 / artificialPlaneZoom;
+		var forceArrowZoom = 2e-3 / artificialPlaneZoom;
 		
-		var zoom = screenPlaneLength / L;
+		var zoom = screenPlaneLength / L / artificialPlaneZoom;
 
 		//physic engine
 		var testStep = 1/100;
@@ -202,7 +205,7 @@ $(document).ready(function() {
 		render = function() {
 			var newRenderTime = $.now();
 			var info = [];
-			info.push('vitesse : ' + (Math.sqrt(vL*vL+vV*vV)*3.6).toFixed(1) + ' km/h');
+			info.push('speed : ' + (Math.sqrt(vL*vL+vV*vV)*3.6).toFixed(1) + ' km/h');
 			info.push('fps : ' + (1000/ (newRenderTime-lastRenderTime)).toFixed(0));
 			$info.html(info.join('<br/>'));
 			lastRenderTime = newRenderTime;
@@ -241,7 +244,7 @@ $(document).ready(function() {
 			var attackAngle = computeAttackAngle(vL, vV);
 			var speed = Math.sqrt(vL*vL + vV*vV);
 			ctx.scale(speed, speed);
-			ctx.scale(3e-2, -3e-2);
+			ctx.scale(speedArrowZoom, -speedArrowZoom);
 			ctx.rotate(-attackAngle);
 			ctx.beginPath();
 			ctx.moveTo(0, 0);
@@ -258,7 +261,7 @@ $(document).ready(function() {
 			var force = Math.sqrt(lastfL*lastfL + lastfV*lastfV);
 			var angle = computeAttackAngle(lastfL, lastfV);
 			ctx.scale(force, force);
-			ctx.scale(1e-3, -1e-3);
+			ctx.scale(forceArrowZoom, -forceArrowZoom);
 			ctx.rotate(-angle);
 			ctx.beginPath();
 			ctx.moveTo(0, 0);
