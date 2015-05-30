@@ -215,12 +215,14 @@ $(document).ready(function() {
 			ctx.beginPath();
 			var offsetXPx = Math.floor(x * zoom - planePosX);
 			var offsetYPx = Math.floor(y * zoom + planePosY);
-			ctx.moveTo(0, offsetYPx - height(offsetXPx / zoom, 1 / zoom) * zoom);
-			for(var j = 1; j < canvasW; j++) {
-				ctx.lineTo(j, offsetYPx - height((offsetXPx + j) / zoom, 1/ zoom) * zoom);
+			ctx.moveTo(0, canvasH - 1);
+			for(var j = 0; j < canvasW; j++) {
+				var delta = 1 / zoom;
+				var xReal = (offsetXPx + j) / zoom;
+				var heightPx = zoom * height(xReal, delta);
+				ctx.lineTo(j, offsetYPx - heightPx);
 			}
 			ctx.lineTo(canvasW - 1, canvasH - 1);
-			ctx.lineTo(0, canvasH - 1);
 			ctx.closePath();
 			ctx.fill();
 
