@@ -18,6 +18,7 @@ $(document).ready(function() {
 
 		//plane
 		var antiStall = 4.5e-4;//rad.s-1.(m/s)-2
+		var trim = 4/180*Math.PI;//rad
 		var stallAngle = 16/180*Math.PI;
 		var cLiftMax = 1;
 		var cWingDrag = 1.1;
@@ -77,8 +78,8 @@ $(document).ready(function() {
 
 			//update a and avoid stall
 			var da = angularSpeedSign * Math.min(maxAngularSpeed, angularSpeed * v.lengthSq()) * step;
-			var sinAttackAngle = Math.sin(attackAngle);			
-			var antiStallUpdate = antiStall * v.lengthSq() * Math.abs(sinAttackAngle) * sinAttackAngle * step;
+			var sinAntiStall = Math.sin(attackAngle - trim);			
+			var antiStallUpdate = antiStall * v.lengthSq() * Math.abs(sinAntiStall) * sinAntiStall * step;
 			da += antiStallUpdate;
 			updateA(da);
 			
