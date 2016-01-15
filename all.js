@@ -1,12 +1,13 @@
 $(document).ready(function() {
 		'use strict';
-		//mountain shape		
+		//mountain shape
 		var stepLength = 200;
 		var randomStrength = 0.9;
 		var slope = 1/3;
 
 		//controls
 		var yinit = 1;
+		var ainit = 0*Math.PI / 2;
 		var vinit = 100;
 		var angularSpeedSign = 0;
 		var angularSpeed = 5e-3;
@@ -30,8 +31,8 @@ $(document).ready(function() {
 		var planeImageSrc = 'plane.png';
 		var screenPlaneLength = 60;//px
 		var artificialPlaneZoom = 5;
-		var planePosX = 80;//px
-		var planePosY = 80;//px
+		var planePos = new Victor(80, -80);
+		var arrowWidthRatio = 0.15;
 		var speedArrowZoom = 8e-2 / artificialPlaneZoom;
 		var forceArrowZoom = 2e-3 / artificialPlaneZoom;
 		
@@ -61,64 +62,44 @@ $(document).ready(function() {
 
 		var updateA = function(da) {
 			a+=da;
-			vL = vL * Math.cos(da) + vV * Math.sin(da);
-			vV = - vL * Math.sin(da) + vV * Math.cos(da);
-		};
-
-		var computeAttackAngle = function(vL, vV) {
-			return - ((vL === 0) ? Math.PI/2 : Math.atan(vV/vL)) + ((vL > 0) ? 0 : Math.PI);
+			v.rotate(-da);
 		};
 
 		var update = function(step) {
-			'use strict';
-
-			var cosA = Math.cos(a), sinA = Math.sin(a);
-
-			var fL = 0, fV = 0;
+			var f = new Victor();
 
 			//gravity
-			var gravityL = -M * g * sinA;
-			var gravityV = -M * g * cosA;
-			fL += gravityL;
-			fV += gravityV;
+			var gravity = new Victor(0, -M * g);
+			gravity.rotate(-a);
+			f.add(gravity);
 
-			var attackAngle = computeAttackAngle(vL, vV);
-			var v = Math.sqrt(vL*vL + vV*vV);
+			var attackAngle = v.horizontalAngle();
 
 			//update a and avoid stall
-			var da = angularSpeedSign * Math.min(maxAngularSpeed, angularSpeed * v * v) * step;
-			var futureA = (attackAngle + da)  % (2*Math.PI);
+			var da = angularSpeedSign * Math.min(maxAngularSpeed, angularSpeed * v.lengthSq()) * step;
 			var sinAttackAngle = Math.sin(attackAngle);			
-			var antiStallUpdate = - antiStall * v * v * Math.abs(sinAttackAngle) * sinAttackAngle * step;
+			var antiStallUpdate = antiStall * v.lengthSq() * Math.abs(sinAttackAngle) * sinAttackAngle * step;
 			da += antiStallUpdate;
 			updateA(da);
 			
 			//bodyDrag
-			fL -= 0.5 * rho * bodyDragS * vL * vL * cBodyDrag;
+			f.add(v.clone().multiplyScalar(-0.5 * rho * bodyDragS * v.length() * cBodyDrag));
 
-			//wing
-			var wingDragOverV = 0.5 * rho * bodyS * v * cDrag(attackAngle);
-			var wingLiftOverV = 0.5 * rho * bodyS * v * cLift(attackAngle);
+			var wingforce = new Victor(cDrag(attackAngle), cLift(attackAngle));
+			wingforce.multiplyScalar(-0.5 * rho * bodyS * v.lengthSq());
+			wingforce.rotate(attackAngle);
+			f.add(wingforce);
 
-			var wfL = - vL * wingDragOverV - vV * wingLiftOverV;
-			var wfV = - vV * wingDragOverV + vL * wingLiftOverV;
-
-			fL += wfL;
-			fV += wfV;
-
-			lastfL = fL - gravityL;
-			lastfV = fV - gravityV;
+			lastf = f.clone().subtract(gravity);
 
 			//actual updates
-			vL += fL * step / M;
-			vV += fV * step / M;
+			f.multiplyScalar(step / M);
+			v.add(f);
 
-			x += vL * cosA * step - vV * sinA * step;
-			y += vL * sinA * step + vV * cosA * step;
+			pos.add(v.clone().multiplyScalar(step).rotate(a));
 			
 			//die if dead
-			if (y < height(x, 1 / zoom)) {
-				//alert('dead');
+			if (pos.y < height(pos.x, 1 / zoom)) {
 				reset();
 			}
 		};
@@ -155,14 +136,12 @@ $(document).ready(function() {
 		var ctx = canvas.getContext('2d');
 		var $info = $('<p/>').appendTo(document.body);
 
-		var x, y, vL, vV, a;
-		var lastfL, lastfV;
+		var pos, v, a;
+		var lastf = new Victor();
 		var reset = function() {
-			x = 0;
-			y = yinit;
-			vL = vinit;
-			vV = 0;
-			a = 0;
+			pos = new Victor(0, yinit);
+			v = new Victor(vinit, 0);
+			a = ainit;
 		};
 		reset();
 		
@@ -189,8 +168,7 @@ $(document).ready(function() {
 				}
 			}
 			return (leftHeight + rightHeight) / 2;
-		};
-
+		}
 
 		var render = null, animationRequestId = null;
 		var browserRequestAnim = window.requestAnimationFrame || window.mozRequestAnimationFrame ||  window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
@@ -205,7 +183,7 @@ $(document).ready(function() {
 		render = function() {
 			var newRenderTime = $.now();
 			var info = [];
-			info.push('speed : ' + (Math.sqrt(vL*vL+vV*vV)*3.6).toFixed(1) + ' km/h');
+			info.push('speed : ' + (v.length()*3.6).toFixed(1) + ' km/h');
 			info.push('fps : ' + (1000/ (newRenderTime-lastRenderTime)).toFixed(0));
 			$info.html(info.join('<br/>'));
 			lastRenderTime = newRenderTime;
@@ -217,14 +195,13 @@ $(document).ready(function() {
 			//moutain
 			ctx.fillStyle = 'brown';
 			ctx.beginPath();
-			var offsetXPx = Math.floor(x * zoom - planePosX);
-			var offsetYPx = Math.floor(y * zoom + planePosY);
+			var topLeftCoord = pos.clone().multiplyScalar(zoom).subtract(planePos).unfloat();
 			ctx.moveTo(0, canvasH - 1);
 			for(var j = 0; j < canvasW; j++) {
 				var delta = 1 / zoom;
-				var xReal = (offsetXPx + j) / zoom;
+				var xReal = (topLeftCoord.x + j) / zoom;
 				var heightPx = zoom * height(xReal, delta);
-				ctx.lineTo(j, offsetYPx - heightPx);
+				ctx.lineTo(j, topLeftCoord.y - heightPx);
 			}
 			ctx.lineTo(canvasW - 1, canvasH - 1);
 			ctx.closePath();
@@ -232,7 +209,7 @@ $(document).ready(function() {
 
 			//plane
 			ctx.save();
-			ctx.translate(planePosX, planePosY);
+			ctx.translate(planePos.x, -planePos.y);
 			ctx.scale(screenPlaneLength, screenPlaneLength);
 			ctx.rotate(-a);
 			//speed and force
@@ -241,42 +218,40 @@ $(document).ready(function() {
 			//speed
 			ctx.save();
 			ctx.strokeStyle = 'green';
-			var attackAngle = computeAttackAngle(vL, vV);
-			var speed = Math.sqrt(vL*vL + vV*vV);
+			var attackAngle = v.horizontalAngle();
+			var speed = v.length();
 			ctx.scale(speed, speed);
 			ctx.scale(speedArrowZoom, -speedArrowZoom);
-			ctx.rotate(-attackAngle);
+			ctx.rotate(attackAngle);
 			ctx.beginPath();
 			ctx.moveTo(0, 0);
 			ctx.lineTo(1, 0);
-			var arrowW = 0.15;
-			ctx.moveTo(1-arrowW, arrowW);
+			ctx.moveTo(1-arrowWidthRatio, arrowWidthRatio);
 			ctx.lineTo(1, 0);
-			ctx.lineTo(1-arrowW, -arrowW);
+			ctx.lineTo(1-arrowWidthRatio, -arrowWidthRatio);
 			ctx.stroke();
 			//text
 			ctx.save();
 			ctx.translate(0.45, 0.03);
 			ctx.scale(0.015, -0.015);
 			ctx.fillStyle= 'darkgreen';
-			ctx.fillText((Math.sqrt(vL*vL+vV*vV)*3.6).toFixed(1), 0, 0);
+			ctx.fillText((speed*3.6).toFixed(1), 0, 0);
 			ctx.restore();
 			ctx.restore();
 			//force
 			ctx.save();
 			ctx.strokeStyle = 'red';
-			var force = Math.sqrt(lastfL*lastfL + lastfV*lastfV);
-			var angle = computeAttackAngle(lastfL, lastfV);
+			var force = lastf.length();
+			var angle = lastf.horizontalAngle();
 			ctx.scale(force, force);
 			ctx.scale(forceArrowZoom, -forceArrowZoom);
-			ctx.rotate(-angle);
+			ctx.rotate(angle);
 			ctx.beginPath();
 			ctx.moveTo(0, 0);
 			ctx.lineTo(1, 0);
-			var arrowW = 0.15;
-			ctx.moveTo(1-arrowW, arrowW);
+			ctx.moveTo(1-arrowWidthRatio, arrowWidthRatio);
 			ctx.lineTo(1, 0);
-			ctx.lineTo(1-arrowW, -arrowW);
+			ctx.lineTo(1-arrowWidthRatio, -arrowWidthRatio);
 			ctx.stroke();
 			ctx.restore();
 
