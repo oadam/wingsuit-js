@@ -215,45 +215,8 @@ $(document).ready(function() {
 			//speed and force
 			ctx.save();
 			ctx.lineWidth = 1e-2;
-			//speed
-			ctx.save();
-			ctx.strokeStyle = 'green';
-			var attackAngle = v.horizontalAngle();
-			var speed = v.length();
-			ctx.scale(speed, speed);
-			ctx.scale(speedArrowZoom, -speedArrowZoom);
-			ctx.rotate(attackAngle);
-			ctx.beginPath();
-			ctx.moveTo(0, 0);
-			ctx.lineTo(1, 0);
-			ctx.moveTo(1-arrowWidthRatio, arrowWidthRatio);
-			ctx.lineTo(1, 0);
-			ctx.lineTo(1-arrowWidthRatio, -arrowWidthRatio);
-			ctx.stroke();
-			//text
-			ctx.save();
-			ctx.translate(0.45, 0.03);
-			ctx.scale(0.015, -0.015);
-			ctx.fillStyle= 'darkgreen';
-			ctx.fillText((speed*3.6).toFixed(1), 0, 0);
-			ctx.restore();
-			ctx.restore();
-			//force
-			ctx.save();
-			ctx.strokeStyle = 'red';
-			var force = lastf.length();
-			var angle = lastf.horizontalAngle();
-			ctx.scale(force, force);
-			ctx.scale(forceArrowZoom, -forceArrowZoom);
-			ctx.rotate(angle);
-			ctx.beginPath();
-			ctx.moveTo(0, 0);
-			ctx.lineTo(1, 0);
-			ctx.moveTo(1-arrowWidthRatio, arrowWidthRatio);
-			ctx.lineTo(1, 0);
-			ctx.lineTo(1-arrowWidthRatio, -arrowWidthRatio);
-			ctx.stroke();
-			ctx.restore();
+			drawArrow(ctx, v, speedArrowZoom, 'green', (v.length()*3.6).toFixed(1), 'darkgreen');
+			drawArrow(ctx, lastf, forceArrowZoom, 'red');
 
 			ctx.restore();
 
@@ -264,6 +227,31 @@ $(document).ready(function() {
 			requestAnim();
 		};
 		requestAnim();
+
+		function drawArrow(ctx, v, zoom, arrowColor, text, textColor) {
+			ctx.save();
+			ctx.strokeStyle = arrowColor;
+			var a = v.horizontalAngle();
+			var l = v.length();
+			ctx.scale(l, l);
+			ctx.scale(zoom, -zoom);
+			ctx.rotate(a);
+			ctx.beginPath();
+			ctx.moveTo(0, 0);
+			ctx.lineTo(1, 0);
+			ctx.moveTo(1-arrowWidthRatio, arrowWidthRatio);
+			ctx.lineTo(1, 0);
+			ctx.lineTo(1-arrowWidthRatio, -arrowWidthRatio);
+			ctx.stroke();
+			//text
+			if (textColor) {
+				ctx.translate(0.45, 0.03);
+				ctx.scale(0.015, -0.015);
+				ctx.fillStyle= textColor;
+				ctx.fillText(text, 0, 0);
+			}
+			ctx.restore();
+		}
 
 
 		//keyboard
