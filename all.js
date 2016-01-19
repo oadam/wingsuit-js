@@ -1,9 +1,25 @@
 $(document).ready(function() {
 		'use strict';
+		var settings = {
+			pause: false
+		};
+		var gui = new dat.GUI();
+		gui.remember(settings);
+		
+		gui.add(settings, 'pause');
+		function addAllToGui(folder, values) {
+			var fm = gui.addFolder(folder);
+			$.extend(settings, values);
+			for (name in values) {
+				fm.add(settings, name);
+			}
+		}
 		//mountain shape
-		var stepLength = 200;
-		var randomStrength = 0.9;
-		var slope = 1/3;
+		addAllToGui('Mountain', {
+			stepLength: 200,
+			randomStrength: 0.9,
+			slope: 1/3
+		});
 
 		//controls
 		var yinit = 1;
@@ -17,16 +33,18 @@ $(document).ready(function() {
 		var g = 9.8, rho = 1.2;
 
 		//plane
-		var antiStall = 4.5e-4;//rad.s-1.(m/s)-2
-		var stallAngle = 16/180*Math.PI;
-		var trim = stallAngle / 2;
-		var cLiftMax = 1;
-		var cWingDrag = 1.1;
-		var cBodyDrag = 2;
-		var bodyS = 0.7;
-		var bodyDragS = 0.02;
-
-		var M = 80, L = 2, gPos = 0.4;
+		addAllToGui('Plane', {
+			antiStall: 4.5e-4,//rad.s-1.(m/s)-2
+			stallAngle: 16/180*Math.PI,
+			trim: 8/180*Math.PI,
+			cLiftMax: 1,
+			cWingDrag: 1.1,
+			cBodyDrag: 2,
+			bodyS: 0.7,
+			bodyDragS: 0.02,
+			mass: 80,
+			length: 2 
+		});
 
 		//graphics
 		var planeImageSrc = 'plane.png';
@@ -37,7 +55,7 @@ $(document).ready(function() {
 		var speedArrowZoom = 8e-2 / artificialPlaneZoom;
 		var forceArrowZoom = 2e-3 / artificialPlaneZoom;
 		
-		var zoom = screenPlaneLength / L / artificialPlaneZoom;
+		var zoom = screenPlaneLength / settings.length / artificialPlaneZoom;
 
 		//physic engine
 		var testStep = 1/100;
@@ -45,7 +63,7 @@ $(document).ready(function() {
 
 		//see http://upload.wikimedia.org/wikipedia/commons/2/22/Lift_drag_graph.JPG
 		var cDrag = function(alpha) {
-			return Math.sin(alpha) * Math.sin(alpha) * cWingDrag;
+			return Math.sin(alpha) * Math.sin(alpha) * settings.cWingDrag;
 		};
 
 		var cLift = function(alpha) {
@@ -53,10 +71,10 @@ $(document).ready(function() {
 			alpha = ((alpha+ 3 * Math.PI) % (2*Math.PI)) - Math.PI;//alpha between -PI and PI
 			var absAlpha = Math.abs(alpha);
 			var absRes = null;
-			if (absAlpha < stallAngle) {
-				absRes = absAlpha / stallAngle * cLiftMax;
+			if (absAlpha < settings.stallAngle) {
+				absRes = absAlpha / settings.stallAngle * settings.cLiftMax;
 			} else {
-				absRes = Math.max(0, cLiftMax * (1 - (absAlpha - stallAngle)/stallAngle));
+				absRes = Math.max(0, settings.cLiftMax * (1 - (absAlpha - settings.stallAngle)/settings.stallAngle));
 			}
 			return alpha > 0 ? absRes : -absRes;
 		};
@@ -67,10 +85,11 @@ $(document).ready(function() {
 		};
 
 		var update = function(step) {
+			if (settings.pause) {return;}
 			var f = new Victor();
 
 			//gravity
-			var gravity = new Victor(0, -M * g);
+			var gravity = new Victor(0, -settings.mass * g);
 			gravity.rotate(-a);
 			f.add(gravity);
 
@@ -78,23 +97,23 @@ $(document).ready(function() {
 
 			//update a and avoid stall
 			var da = angularSpeedSign * Math.min(maxAngularSpeed, angularSpeed * v.lengthSq()) * step;
-			var sinAntiStall = Math.sin(attackAngle + trim);
-			var antiStallUpdate = antiStall * v.lengthSq() * Math.abs(sinAntiStall) * sinAntiStall * step;
+			var sinAntiStall = Math.sin(attackAngle + settings.trim);
+			var antiStallUpdate = settings.antiStall * v.lengthSq() * Math.abs(sinAntiStall) * sinAntiStall * step;
 			da += antiStallUpdate;
 			updateA(da);
 			
 			//bodyDrag
-			f.add(v.clone().multiplyScalar(-0.5 * rho * bodyDragS * v.length() * cBodyDrag));
+			f.add(v.clone().multiplyScalar(-0.5 * rho * settings.bodyDragS * v.length() * settings.cBodyDrag));
 
 			var wingforce = new Victor(cDrag(attackAngle), cLift(attackAngle));
-			wingforce.multiplyScalar(-0.5 * rho * bodyS * v.lengthSq());
+			wingforce.multiplyScalar(-0.5 * rho * settings.bodyS * v.lengthSq());
 			wingforce.rotate(attackAngle);
 			f.add(wingforce);
 
 			lastf = f.clone().subtract(gravity);
 
 			//actual updates
-			f.multiplyScalar(step / M);
+			f.multiplyScalar(step / settings.mass);
 			v.add(f);
 
 			pos.add(v.clone().multiplyScalar(step).rotate(a));
@@ -152,14 +171,14 @@ $(document).ready(function() {
 		};
 
 		function height(x, delta) {
-			var prevStep = Math.floor(x/stepLength)*stepLength;
-			var left = prevStep, right = prevStep + stepLength;
-			var leftHeight = -left * slope, rightHeight = -right * slope;
+			var prevStep = Math.floor(x/settings.stepLength)*settings.stepLength;
+			var left = prevStep, right = prevStep + settings.stepLength;
+			var leftHeight = -left * settings.slope, rightHeight = -right * settings.slope;
 
 			while (right - left > delta) {
 				var middle = (left + right) / 2;
 				var middleHeight = (leftHeight + rightHeight) / 2;
-				middleHeight += (right - left) * pseudoRandom(middle) * randomStrength;
+				middleHeight += (right - left) * pseudoRandom(middle) * settings.randomStrength;
 				if (x < middle) {
 					right = middle;
 					rightHeight = middleHeight;
@@ -264,6 +283,9 @@ $(document).ready(function() {
 				case 38:
 					angularSpeedSign = -1;
 					break;
+				case 82:// 'r'
+					reset();
+					break;
 			}
 		};
 		window.onkeyup = function(event) {
@@ -274,4 +296,5 @@ $(document).ready(function() {
 					break;
 			}
 		};
+	$('#reset').click(reset);
 });
