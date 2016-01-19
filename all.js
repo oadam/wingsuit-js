@@ -57,6 +57,11 @@ $(document).ready(function() {
 		
 		var zoom = screenPlaneLength / settings.length / artificialPlaneZoom;
 
+		addAllToGui('3d', {
+			cameraDist: 10,
+			cameraAperture: 20/180*Math.PI,
+		});
+
 		//physic engine
 		var testStep = 1/100;
 		var minStep = 1/25;//when offscreen setInterval is called every 200ms or more
@@ -230,6 +235,26 @@ $(document).ready(function() {
 			//plane
 			ctx.save();
 			ctx.translate(planePos.x, -planePos.y);
+
+			// 3d cam
+			ctx.save();
+			ctx.strokeStyle = 'black';
+			ctx.lineWidth = 1e-2;
+			ctx.rotate(-a - v.horizontalAngle());
+			ctx.scale(settings.cameraDist * zoom, settings.cameraDist * zoom);
+			ctx.translate(-1, 0);
+			var tip = new Victor(0.4, 0);
+			tip.rotate(settings.cameraAperture);
+			ctx.beginPath();
+			ctx.moveTo(tip.x, tip.y);
+			ctx.lineTo(0, 0);
+			ctx.lineTo(tip.x, -tip.y);
+			var middle = tip.clone().multiplyScalar(0.5);
+			ctx.moveTo(middle.x, middle.y);
+			ctx.lineTo(middle.x, -middle.y);
+			ctx.stroke();
+			ctx.restore();
+
 			ctx.scale(screenPlaneLength, screenPlaneLength);
 			ctx.rotate(-a);
 			//speed and force
