@@ -60,6 +60,8 @@ $(document).ready(function() {
 		addAllToGui('3d', {
 			cameraDist: 10,
 			cameraAperture: 20/180*Math.PI,
+			pointSpacing: 0.5/180*Math.PI,// in rad
+			fieldDepth: 300// meters
 		});
 
 		//physic engine
@@ -155,7 +157,9 @@ $(document).ready(function() {
 		var canvas = $('canvas');
 		canvas = canvas[0];
 		canvas.width = Math.floor($(window).width()* 0.9);
+		canvas.width = 1000;
 		canvas.height = Math.floor($(window).height()*0.8);
+		canvas.height = 500;
 		var canvasW = canvas.width;
 		var canvasH = canvas.height;
 		var ctx = canvas.getContext('2d');
@@ -212,6 +216,32 @@ $(document).ready(function() {
 			info.push('fps : ' + (1000/ (newRenderTime-lastRenderTime)).toFixed(0));
 			$info.html(info.join('<br/>'));
 			lastRenderTime = newRenderTime;
+			var delta = 1 / zoom;
+
+			// 3d points
+			var cameraDir = v.clone().rotate(a).normalize();
+			var cameraPos = pos.clone().subtract(cameraDir.clone().multiplyScalar(settings.cameraDist));
+			var pointsRight = [];
+			var current = new Victor(pos.x, height(pos.x, delta));
+			var topCameraDir = cameraDir.clone().rotate(settings.cameraAperture);
+			while(true) {
+				if (pointsRight.length > 1000) {
+					console.warn('too many points computed');
+					break;
+				}
+				if (current.x > pos.x + settings.fieldDepth) {
+					break;
+				}
+				var vectorToPoint = current.clone().subtract(cameraPos);
+				// stop if above top of camera
+				if (topCameraDir.cross(vectorToPoint) > 0) {
+					break;
+				}
+				pointsRight.push(current);
+				var nextX = current.x + vectorToPoint.length() * settings.pointSpacing;
+				current = new Victor(nextX, height(nextX, delta));
+			}
+
 
 			//clear
 			ctx.save();
@@ -244,11 +274,11 @@ $(document).ready(function() {
 
 			// 3d cam
 			ctx.save();
+			ctx.translate(cameraPos.x, cameraPos.y);
+			ctx.rotate(cameraDir.angle());
 			ctx.strokeStyle = 'black';
-			ctx.lineWidth = 1e-2;
-			ctx.rotate(-a - v.horizontalAngle());
+			ctx.lineWidth = 1/zoom/settings.cameraDist;
 			ctx.scale(settings.cameraDist, settings.cameraDist);
-			ctx.translate(-1, 0);
 			var tip = new Victor(0.4, 0);
 			tip.rotate(settings.cameraAperture);
 			ctx.beginPath();
@@ -260,6 +290,12 @@ $(document).ready(function() {
 			ctx.lineTo(middle.x, -middle.y);
 			ctx.stroke();
 			ctx.restore();
+
+			// 3d points in 2d
+			ctx.fillStyle = 'lightgreen';
+			pointsRight.forEach(function(p) {
+				ctx.fillRect(p.x-2/zoom, p.y-2/zoom, 4/zoom, 4/zoom);
+			});
 
 			// plane
 			ctx.save();
