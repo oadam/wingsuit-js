@@ -324,6 +324,9 @@ $(document).ready(function() {
 				case 82:// 'r'
 					reset();
 					break;
+				case 80:// 'p'
+					settings.pause = !settings.pause;
+					break;
 			}
 		};
 		window.onkeyup = function(event) {
