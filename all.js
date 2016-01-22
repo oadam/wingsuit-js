@@ -50,10 +50,10 @@ $(document).ready(function() {
 		var planeImageSrc = 'plane.png';
 		var screenPlaneLength = 60;//px
 		var artificialPlaneZoom = 5;
-		var planePos = new Victor(80, -80);
+		var planeOffsetTopLeft = new Victor(80, -80);
 		var arrowWidthRatio = 0.15;
-		var speedArrowZoom = 8e-2 / artificialPlaneZoom;
-		var forceArrowZoom = 2e-3 / artificialPlaneZoom;
+		var speedArrowZoom = 12e-2;
+		var forceArrowZoom = 3e-3;
 		
 		var zoom = screenPlaneLength / settings.length / artificialPlaneZoom;
 
@@ -214,34 +214,40 @@ $(document).ready(function() {
 			lastRenderTime = newRenderTime;
 
 			//clear
+			ctx.save();
+			// put (0, 0) at bottom right
+			ctx.scale(1, -1);
+			ctx.translate(0, -canvasH);
 			ctx.fillStyle = 'lightblue';
 			ctx.fillRect(0, 0, canvasW, canvasH);
+
+			// translate and scale so that real coordinates can be used
+			// we want pos + translation = 1/zoom * ((0, canvasH) + planeOffsetTopLeft)
+			ctx.scale(zoom, zoom);
+			var pixelTranslation = new Victor(0, canvasH).add(planeOffsetTopLeft);
+			var translation = pixelTranslation.clone().multiplyScalar(1/zoom).subtract(pos);
+			ctx.translate(translation.x, translation.y);
 
 			//moutain
 			ctx.fillStyle = 'brown';
 			ctx.beginPath();
-			var topLeftCoord = pos.clone().multiplyScalar(zoom).subtract(planePos).unfloat();
-			ctx.moveTo(0, canvasH - 1);
+			ctx.moveTo(-translation.x, -translation.y);
 			for(var j = 0; j < canvasW; j++) {
 				var delta = 1 / zoom;
-				var xReal = (topLeftCoord.x + j) / zoom;
-				var heightPx = zoom * height(xReal, delta);
-				ctx.lineTo(j, topLeftCoord.y - heightPx);
+				var x = -translation.x + j / zoom;
+				var y = height(x, delta);
+				ctx.lineTo(x, y);
 			}
-			ctx.lineTo(canvasW - 1, canvasH - 1);
+			ctx.lineTo(-translation.x + canvasW/zoom, -translation.y);
 			ctx.closePath();
 			ctx.fill();
-
-			//plane
-			ctx.save();
-			ctx.translate(planePos.x, -planePos.y);
 
 			// 3d cam
 			ctx.save();
 			ctx.strokeStyle = 'black';
 			ctx.lineWidth = 1e-2;
 			ctx.rotate(-a - v.horizontalAngle());
-			ctx.scale(settings.cameraDist * zoom, settings.cameraDist * zoom);
+			ctx.scale(settings.cameraDist, settings.cameraDist);
 			ctx.translate(-1, 0);
 			var tip = new Victor(0.4, 0);
 			tip.rotate(settings.cameraAperture);
@@ -255,9 +261,11 @@ $(document).ready(function() {
 			ctx.stroke();
 			ctx.restore();
 
-			ctx.scale(screenPlaneLength, screenPlaneLength);
-			ctx.rotate(-a);
-			//speed and force
+			// plane
+			ctx.save();
+			ctx.translate(pos.x, pos.y);
+			ctx.rotate(a);
+			// speed and force
 			ctx.save();
 			ctx.lineWidth = 1e-2;
 			drawArrow(ctx, v, speedArrowZoom, 'green', (v.length()*3.6).toFixed(1), 'darkgreen');
@@ -266,8 +274,14 @@ $(document).ready(function() {
 			ctx.restore();
 
 
-			ctx.scale(-1, 1);
+			// image
+			ctx.save();
+			ctx.scale(-settings.length * artificialPlaneZoom, -settings.length * artificialPlaneZoom);
 			ctx.drawImage(planeImage, -0.5,-11.5/49,1,23/49);
+			ctx.restore();
+
+			ctx.restore();
+
 			ctx.restore();
 			requestAnim();
 		};
@@ -278,8 +292,7 @@ $(document).ready(function() {
 			ctx.strokeStyle = arrowColor;
 			var a = v.horizontalAngle();
 			var l = v.length();
-			ctx.scale(l, l);
-			ctx.scale(zoom, -zoom);
+			ctx.scale(l * zoom, l * zoom);
 			ctx.rotate(a);
 			ctx.beginPath();
 			ctx.moveTo(0, 0);
