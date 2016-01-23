@@ -178,6 +178,35 @@ $(document).ready(function() {
 			return Math.abs((((1.2345 * x % 0.33) + (6.322 * x % 0.33) + (3.87 * x % 0.33)) % 1)) - 0.5;
 		};
 
+		function compute3DPointsInDirection(cameraDir, cameraPos, direction) {
+			var delta = 1 / zoom;
+			var pointsRight = [];
+			var current = new Victor(pos.x, height(pos.x, delta));
+			var topCameraDir = cameraDir.clone().rotate(direction * settings.cameraAperture);
+			var bottomCameraDir = cameraDir.clone().rotate(-direction * settings.cameraAperture);
+			while(true) {
+				if (pointsRight.length > 1000) {
+					console.warn('too many points computed');
+					break;
+				}
+				if (Math.abs(current.x - pos.x) > settings.fieldDepth) {
+					break;
+				}
+				var vectorToPoint = current.clone().subtract(cameraPos);
+				// stop if above top of camera
+				if (topCameraDir.cross(vectorToPoint) * direction > 0) {
+					break;
+				}
+				// push only if in field of view
+				if (bottomCameraDir.cross(vectorToPoint) * direction > 0) {
+					pointsRight.push(current);
+				}
+				var nextX = current.x + direction * vectorToPoint.length() * settings.pointSpacing;
+				current = new Victor(nextX, height(nextX, delta));
+			}
+			return pointsRight;
+		}
+
 		function height(x, delta) {
 			var prevStep = Math.floor(x/settings.stepLength)*settings.stepLength;
 			var left = prevStep, right = prevStep + settings.stepLength;
@@ -209,36 +238,13 @@ $(document).ready(function() {
 		};
 		var lastRenderTime = $.now();
 		render = function() {
-			var delta = 1 / zoom;
 
 			// 3d points
 			var cameraDir = v.clone().rotate(a).normalize();
 			var cameraPos = pos.clone().subtract(cameraDir.clone().multiplyScalar(settings.cameraDist));
-			var pointsRight = [];
-			var current = new Victor(pos.x, height(pos.x, delta));
-			var topCameraDir = cameraDir.clone().rotate(settings.cameraAperture);
-			var bottomCameraDir = cameraDir.clone().rotate(-settings.cameraAperture);
-			while(true) {
-				if (pointsRight.length > 1000) {
-					console.warn('too many points computed');
-					break;
-				}
-				if (current.x > pos.x + settings.fieldDepth) {
-					break;
-				}
-				var vectorToPoint = current.clone().subtract(cameraPos);
-				// stop if above top of camera
-				if (topCameraDir.cross(vectorToPoint) > 0) {
-					break;
-				}
-				// push only if in field of view
-				if (bottomCameraDir.cross(vectorToPoint) > 0) {
-					pointsRight.push(current);
-				}
-				var nextX = current.x + vectorToPoint.length() * settings.pointSpacing;
-				current = new Victor(nextX, height(nextX, delta));
-			}
-
+			var pointsRight = compute3DPointsInDirection(cameraDir, cameraPos, 1);
+			var pointsLeft = compute3DPointsInDirection(cameraDir, cameraPos, -1);
+			var points = pointsLeft.concat(pointsRight);
 
 			//clear
 			ctx.save();
@@ -270,28 +276,30 @@ $(document).ready(function() {
 			ctx.fill();
 
 			// 3d cam
-			ctx.save();
-			ctx.translate(cameraPos.x, cameraPos.y);
-			ctx.rotate(cameraDir.angle());
-			ctx.strokeStyle = 'black';
-			ctx.lineWidth = 1/zoom/settings.cameraDist;
-			ctx.scale(settings.cameraDist, settings.cameraDist);
-			var tip = new Victor(0.4, 0);
-			tip.rotate(settings.cameraAperture);
-			ctx.beginPath();
-			ctx.moveTo(tip.x, tip.y);
-			ctx.lineTo(0, 0);
-			ctx.lineTo(tip.x, -tip.y);
-			var middle = tip.clone().multiplyScalar(0.5);
-			ctx.moveTo(middle.x, middle.y);
-			ctx.lineTo(middle.x, -middle.y);
-			ctx.stroke();
-			ctx.restore();
+			if (settings.show3DPoints) {
+				ctx.save();
+				ctx.translate(cameraPos.x, cameraPos.y);
+				ctx.rotate(cameraDir.angle());
+				ctx.strokeStyle = 'black';
+				ctx.lineWidth = 1/zoom/settings.cameraDist;
+				ctx.scale(settings.cameraDist, settings.cameraDist);
+				var tip = new Victor(0.4, 0);
+				tip.rotate(settings.cameraAperture);
+				ctx.beginPath();
+				ctx.moveTo(tip.x, tip.y);
+				ctx.lineTo(0, 0);
+				ctx.lineTo(tip.x, -tip.y);
+				var middle = tip.clone().multiplyScalar(0.5);
+				ctx.moveTo(middle.x, middle.y);
+				ctx.lineTo(middle.x, -middle.y);
+				ctx.stroke();
+				ctx.restore();
+			}
 
 			// 3d points in 2d
 			if (settings.show3DPoints) {
 				ctx.fillStyle = 'lightgreen';
-				pointsRight.forEach(function(p) {
+				points.forEach(function(p) {
 					ctx.fillRect(p.x-2/zoom, p.y-2/zoom, 4/zoom, 4/zoom);
 				});
 			}
@@ -325,7 +333,7 @@ $(document).ready(function() {
 			var info = [];
 			info.push('speed : ' + (v.length()*3.6).toFixed(1) + ' km/h');
 			info.push('fps : ' + (1000/ (newRenderTime-lastRenderTime)).toFixed(0));
-			info.push('# of 3D points : ' + pointsRight.length);
+			info.push('# of 3D points : ' + points.length);
 			$info.html(info.join('<br/>'));
 			lastRenderTime = newRenderTime;
 
