@@ -61,7 +61,8 @@ $(document).ready(function() {
 			cameraDist: 10,
 			cameraAperture: 20/180*Math.PI,
 			pointSpacing: 0.5/180*Math.PI,// in rad
-			fieldDepth: 300// meters
+			fieldDepth: 300,// meters
+			show3DPoints: false
 		});
 
 		//physic engine
@@ -157,9 +158,7 @@ $(document).ready(function() {
 		var canvas = $('canvas');
 		canvas = canvas[0];
 		canvas.width = Math.floor($(window).width()* 0.9);
-		canvas.width = 1000;
 		canvas.height = Math.floor($(window).height()*0.8);
-		canvas.height = 500;
 		var canvasW = canvas.width;
 		var canvasH = canvas.height;
 		var ctx = canvas.getContext('2d');
@@ -210,12 +209,6 @@ $(document).ready(function() {
 		};
 		var lastRenderTime = $.now();
 		render = function() {
-			var newRenderTime = $.now();
-			var info = [];
-			info.push('speed : ' + (v.length()*3.6).toFixed(1) + ' km/h');
-			info.push('fps : ' + (1000/ (newRenderTime-lastRenderTime)).toFixed(0));
-			$info.html(info.join('<br/>'));
-			lastRenderTime = newRenderTime;
 			var delta = 1 / zoom;
 
 			// 3d points
@@ -224,6 +217,7 @@ $(document).ready(function() {
 			var pointsRight = [];
 			var current = new Victor(pos.x, height(pos.x, delta));
 			var topCameraDir = cameraDir.clone().rotate(settings.cameraAperture);
+			var bottomCameraDir = cameraDir.clone().rotate(-settings.cameraAperture);
 			while(true) {
 				if (pointsRight.length > 1000) {
 					console.warn('too many points computed');
@@ -237,7 +231,10 @@ $(document).ready(function() {
 				if (topCameraDir.cross(vectorToPoint) > 0) {
 					break;
 				}
-				pointsRight.push(current);
+				// push only if in field of view
+				if (bottomCameraDir.cross(vectorToPoint) > 0) {
+					pointsRight.push(current);
+				}
 				var nextX = current.x + vectorToPoint.length() * settings.pointSpacing;
 				current = new Victor(nextX, height(nextX, delta));
 			}
@@ -292,10 +289,12 @@ $(document).ready(function() {
 			ctx.restore();
 
 			// 3d points in 2d
-			ctx.fillStyle = 'lightgreen';
-			pointsRight.forEach(function(p) {
-				ctx.fillRect(p.x-2/zoom, p.y-2/zoom, 4/zoom, 4/zoom);
-			});
+			if (settings.show3DPoints) {
+				ctx.fillStyle = 'lightgreen';
+				pointsRight.forEach(function(p) {
+					ctx.fillRect(p.x-2/zoom, p.y-2/zoom, 4/zoom, 4/zoom);
+				});
+			}
 
 			// plane
 			ctx.save();
@@ -319,6 +318,17 @@ $(document).ready(function() {
 			ctx.restore();
 
 			ctx.restore();
+
+
+			// text info
+			var newRenderTime = $.now();
+			var info = [];
+			info.push('speed : ' + (v.length()*3.6).toFixed(1) + ' km/h');
+			info.push('fps : ' + (1000/ (newRenderTime-lastRenderTime)).toFixed(0));
+			info.push('# of 3D points : ' + pointsRight.length);
+			$info.html(info.join('<br/>'));
+			lastRenderTime = newRenderTime;
+
 			requestAnim();
 		};
 		requestAnim();
