@@ -1,5 +1,8 @@
 $(document).ready(function() {
 		'use strict';
+
+		var Color = net.brehaut.Color;
+
 		var settings = {
 			pause: false
 		};
@@ -11,7 +14,13 @@ $(document).ready(function() {
 			var fm = gui.addFolder(folder);
 			$.extend(settings, values);
 			for (name in values) {
-				fm.add(settings, name);
+				var val = values[name];
+				var isColor = (typeof val) == 'string' && val.match('#......');
+				if (isColor) {
+					fm.addColor(settings, name);
+				} else {
+					fm.add(settings, name);
+				}
 			}
 		}
 		//mountain shape
@@ -62,8 +71,37 @@ $(document).ready(function() {
 			cameraAperture: 20/180*Math.PI,
 			pointSpacing: 0.5/180*Math.PI,// in rad
 			fieldDepth: 300,// meters
-			show3DPoints: false
+			show3DPoints: true,// TODO
+			view3DWidth: 100,
+			sunDir: 45/180 * Math.PI,
+			ambiant: '#311c09',
+			skyAmbiant: '#593311',
+			diffuse: '#311c09',
+			specular: '#666666',
+			shininess: 3.0
 		});
+
+		/**
+		 * Reflects a vector v on a surface with normal vector norm
+		 * */
+		function reflect(v, norm) {
+			return norm.clone().multiplyScalar(-2 * v.dot(norm)).add(v);
+		}
+
+		function color(eyeDir, point, norm) {
+			var sunDir = new Victor(1, 0).rotate(Math.PI/2 - settings.sunDir);
+			var hiddenSky = Math.abs(norm.verticalAngle()/Math.PI);
+			var a = Color(settings.ambiant);
+			var sa = Color(settings.skyAmbiant).darkenByRatio(hiddenSky);
+			var d = Color(settings.diffuse).darkenByRatio(1 - norm.dot(sunDir));
+			var eyeReflexion = reflect(eyeDir, norm);
+			var s = Color(settings.specular).darkenByRatio(1 - Math.pow(eyeReflexion.dot(sunDir), settings.shininess));
+			return Color([
+				255 * (a.getRed() + sa.getRed() + d.getRed() + s.getRed()),
+				255 * (a.getGreen() + sa.getGreen() + d.getGreen() + s.getGreen()),
+				255 * (a.getBlue() + sa.getBlue() + d.getBlue() + s.getBlue())
+			]);
+		}
 
 		//physic engine
 		var testStep = 1/100;
@@ -237,6 +275,31 @@ $(document).ready(function() {
 			animationRequestId = browserRequestAnim(render, canvas);
 		};
 		var lastRenderTime = $.now();
+		function draw3DPoint(ctx, cameraPos, cameraDir, points, direction) {
+			for (var i = 0; i < points.length - 1; i++) {
+				var p = points[i];
+				var p2 = points[i+1];
+				var norm = p2.clone().subtract(p).normalize().rotate(direction * Math.PI/2);
+				var eyeDir = p.clone().subtract(cameraPos).normalize();
+				var eyeDir2 = p2.clone().subtract(cameraPos).normalize();
+				var c = color(eyeDir, p, norm);
+				ctx.fillStyle = c.toCSS();
+				ctx.fillRect(p.x-2/zoom, p.y-2/zoom, 4/zoom, 4/zoom);
+
+				// 3D view
+				ctx.save();
+				ctx.resetTransform();
+				// put (0, 0) at bottom right
+				ctx.scale(1, -1);
+				ctx.translate(0, -canvasH);
+				var angle1 = eyeDir.angle() - cameraDir.angle();
+				var angle2 = eyeDir2.angle() - cameraDir.angle();
+				var Y1 = (1 + angle1 / settings.cameraAperture) * canvasH / 2;
+				var Y2 = (1 + angle2 / settings.cameraAperture) * canvasH / 2;
+				ctx.fillRect(0, Math.min(Y1, Y2), settings.view3DWidth, Math.abs(Y2-Y1));
+				ctx.restore();
+			}
+		}
 		render = function() {
 
 			// 3d points
@@ -244,7 +307,6 @@ $(document).ready(function() {
 			var cameraPos = pos.clone().subtract(cameraDir.clone().multiplyScalar(settings.cameraDist));
 			var pointsRight = compute3DPointsInDirection(cameraDir, cameraPos, 1);
 			var pointsLeft = compute3DPointsInDirection(cameraDir, cameraPos, -1);
-			var points = pointsLeft.concat(pointsRight);
 
 			//clear
 			ctx.save();
@@ -253,6 +315,9 @@ $(document).ready(function() {
 			ctx.translate(0, -canvasH);
 			ctx.fillStyle = 'lightblue';
 			ctx.fillRect(0, 0, canvasW, canvasH);
+			if (settings.show3DPoints) {
+				ctx.translate(settings.view3DWidth, 0);
+			}
 
 			// translate and scale so that real coordinates can be used
 			// we want pos + translation = 1/zoom * ((0, canvasH) + planeOffsetTopLeft)
@@ -298,10 +363,8 @@ $(document).ready(function() {
 
 			// 3d points in 2d
 			if (settings.show3DPoints) {
-				ctx.fillStyle = 'lightgreen';
-				points.forEach(function(p) {
-					ctx.fillRect(p.x-2/zoom, p.y-2/zoom, 4/zoom, 4/zoom);
-				});
+				draw3DPoint(ctx, cameraPos, cameraDir, pointsRight, 1);
+				draw3DPoint(ctx, cameraPos, cameraDir, pointsLeft, -1);
 			}
 
 			// plane
@@ -333,7 +396,7 @@ $(document).ready(function() {
 			var info = [];
 			info.push('speed : ' + (v.length()*3.6).toFixed(1) + ' km/h');
 			info.push('fps : ' + (1000/ (newRenderTime-lastRenderTime)).toFixed(0));
-			info.push('# of 3D points : ' + points.length);
+			info.push('# of 3D points : ' + (pointsLeft.length + pointsRight.length));
 			$info.html(info.join('<br/>'));
 			lastRenderTime = newRenderTime;
 
