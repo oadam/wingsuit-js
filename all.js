@@ -71,8 +71,11 @@ $(document).ready(function() {
 			cameraAperture: 20/180*Math.PI,
 			pointSpacing: 0.5/180*Math.PI,// in rad
 			fieldDepth: 300,// meters
+			mountainWidth: 10,
 			show3DPoints: true,// TODO
-			view3DWidth: 100,
+			rainbowMode: false,
+			rainbowCycle: 100,
+			view3DWidth: $(window).height()*0.8,
 			sunDir: 45/180 * Math.PI,
 			ambiant: '#311c09',
 			skyAmbiant: '#593311',
@@ -89,6 +92,10 @@ $(document).ready(function() {
 		}
 
 		function color(eyeDir, point, norm) {
+			if (settings.rainbowMode) {
+				var hue = 360 * ((point.x/settings.rainbowCycle) % 1);
+				return Color({hue: hue, saturation: 1, value: 1});
+			}
 			var sunDir = new Victor(1, 0).rotate(Math.PI/2 - settings.sunDir);
 			var hiddenSky = Math.abs(norm.verticalAngle()/Math.PI);
 			var a = Color(settings.ambiant);
@@ -296,7 +303,10 @@ $(document).ready(function() {
 				var angle2 = eyeDir2.angle() - cameraDir.angle();
 				var Y1 = (1 + angle1 / settings.cameraAperture) * canvasH / 2;
 				var Y2 = (1 + angle2 / settings.cameraAperture) * canvasH / 2;
-				ctx.fillRect(0, Math.min(Y1, Y2), settings.view3DWidth, Math.abs(Y2-Y1));
+				var angleW = settings.mountainWidth / p.clone().subtract(cameraPos).length();
+				var halfWidth = settings.view3DWidth / 2;
+				var wPx = Math.min(halfWidth, angleW / settings.cameraAperture * halfWidth);
+				ctx.fillRect(halfWidth - wPx, Math.min(Y1, Y2), 2*wPx, Math.abs(Y2-Y1));
 				ctx.restore();
 			}
 		}
@@ -305,8 +315,8 @@ $(document).ready(function() {
 			// 3d points
 			var cameraDir = v.clone().rotate(a).normalize();
 			var cameraPos = pos.clone().subtract(cameraDir.clone().multiplyScalar(settings.cameraDist));
-			var pointsRight = compute3DPointsInDirection(cameraDir, cameraPos, 1);
-			var pointsLeft = compute3DPointsInDirection(cameraDir, cameraPos, -1);
+			var pointsRight = compute3DPointsInDirection(cameraDir, cameraPos, 1).reverse();
+			var pointsLeft = compute3DPointsInDirection(cameraDir, cameraPos, -1).reverse();
 
 			//clear
 			ctx.save();
