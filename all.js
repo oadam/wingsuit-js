@@ -70,7 +70,7 @@ $(document).ready(function() {
 			cameraDist: 10,
 			cameraAperture: 20/180*Math.PI,
 			pointSpacing: 0.5/180*Math.PI,// in rad
-			fieldDepth: 300,// meters
+			fieldDepth: 700,// meters
 			mountainWidth: 10,
 			show3DPoints: true,// TODO
 			rainbowMode: false,
